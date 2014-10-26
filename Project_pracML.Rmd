@@ -1,0 +1,61 @@
+---
+title: "Data Science Specialization - Practical ML Course Project"
+---
+
+The goal of the project is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants in order to predict whether they perform barbell lifts correctly or incorrectly in 5 different ways: A (correct); B, C, D, E (false).
+
+**Executive Summary:** We first did some data cleaning by removing several columns that consisted of mostly NA entries. We also removed the initial 7 columns since they were irrelevant for the prediction task. Then for the remaining 53 columns, we applied random forest model to predict the "classe" column. This provided us an OOB estimate of 0.003. Cross validation was not necessary for this model since we didn't perform feature selection. The error rate on the small test set (with 20 rows) was 0%.
+
+We first import the test and training data by assigning NA values to the empty entries:
+```{r}
+training <- read.csv("pml-training.csv",na.strings = c("#DIV/0!","NA"))
+testing <- read.csv("pml-testing.csv",na.strings = "#DIV/0!")
+```
+
+Summary of the training set reveals several columns with mostly NA values:
+```{r, results='hide'}
+summary(training) #not shown to save space
+```
+
+We remove those columns from the dataset:
+
+```{r}
+#find columns that have lots of NAs
+usefulIndex <- apply(training, 2, function(x) ifelse(sum(is.na(x))>10000, 0 , 1))
+usefulIndex <- as.logical(usefulIndex)
+#remove NA columns
+training <- training[,usefulIndex]
+testing <- testing[,usefulIndex]
+```
+
+We further remove the first 7 columns that are irrelevant for prediction purposes:
+
+```{r}
+#remove the initial 7 columns which are not informative
+training <- training[,-(1:7)]
+testing <- testing[,-(1:7)]
+```
+
+At this point all our variables are in numeric form which seems appropriate.
+We apply random forest algorithm considering the number of variables which are mostly correlated.
+
+```{r, message=F}
+set.seed(1000)
+library(randomForest)
+model <- randomForest(classe ~., data = training) #with default parameters
+model$confusion
+```
+
+Notice that cross-validation is not necessary with random forests as long as we are not performing feature selection. The error rates obtained are quite low. Actually, rates were low even with 80-90 trees in the forest:
+
+```{r}
+plot(model)
+```
+
+The OOB estimate for the model is:
+
+```{r}
+model$err.rate[500,1]
+```
+
+So, we are satisfied with this model. Now, we can test our model in the test set. This is the second part of the project and we obtain 100% accuracy on the 20 test cases.
